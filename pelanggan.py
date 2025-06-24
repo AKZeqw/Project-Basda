@@ -241,43 +241,52 @@ def sewa_kendaraan(id_pelanggan):
     id_driver = None
     id_harga_driver = None
 
-    pakai_supir = input("Apakah Anda ingin menyewa supir? (y/n): ").lower()
-    if pakai_supir == 'y':
-        cur.execute("SELECT id_driver, nama FROM driver WHERE status = 'tersedia'")
-        list_supir = cur.fetchall()
+    cur.execute("SELECT jenis_kendaraan FROM kendaraan WHERE id_kendaraan = %s", (id_kendaraan,))
+    jenis_kendaraan = cur.fetchone()
+    if not jenis_kendaraan:
+        print("Kendaraan tidak ditemukan.")
+        kembali()
+        return
 
-        if not list_supir:
-            print("Supir tidak tersedia saat ini.")
-            kembali()
-            return
+    if jenis_kendaraan[0].lower() == "mobil":
+        pakai_supir = input("Apakah Anda ingin menyewa supir? (y/n): ").lower()
+        if pakai_supir == 'y':
+            cur.execute("SELECT id_driver, nama FROM driver WHERE status = 'tersedia'")
+            list_supir = cur.fetchall()
 
-        print("\nDaftar Supir:")
-        for supir in list_supir:
-            print(f"{supir[0]}. {supir[1]}")
-        try:
-            id_driver = int(input("Masukkan ID supir yang dipilih: "))
-        except:
-            print("ID Supir tidak valid.")
-            kembali()
-            return
+            if not list_supir:
+                print("Supir tidak tersedia saat ini.")
+                kembali()
+                return
 
-        cur.execute("SELECT id_harga_driver, nama_paket, harga FROM harga_driver")
-        list_harga_driver = cur.fetchall()
-        print("\nPaket Harga Supir:")
-        for h in list_harga_driver:
-            print(f"{h[0]}. {h[1]} - Rp{h[2]:,}".replace(",", "."))
+            print("\nDaftar Supir:")
+            for supir in list_supir:
+                print(f"{supir[0]}. {supir[1]}")
+            try:
+                id_driver = int(input("Masukkan ID supir yang dipilih: "))
+            except:
+                print("ID Supir tidak valid.")
+                kembali()
+                return
 
-        try:
-            id_harga_driver = int(input("Pilih ID paket harga supir: "))
-            cur.execute("SELECT harga FROM harga_driver WHERE id_harga_driver = %s", (id_harga_driver,))
-            harga_supir = cur.fetchone()[0]
-            total_harga += harga_supir * durasi
-        except:
-            print("Input tidak valid.")
-            kembali()
-            return
+            cur.execute("SELECT id_harga_driver, nama_paket, harga FROM harga_driver")
+            list_harga_driver = cur.fetchall()
+            print("\nPaket Harga Supir:")
+            for h in list_harga_driver:
+                print(f"{h[0]}. {h[1]} - Rp{h[2]:,}".replace(",", "."))
 
-        cur.execute("UPDATE driver SET status = 'disewa' WHERE id_driver = %s", (id_driver,))
+            try:
+                id_harga_driver = int(input("Pilih ID paket harga supir: "))
+                cur.execute("SELECT harga FROM harga_driver WHERE id_harga_driver = %s", (id_harga_driver,))
+                harga_supir = cur.fetchone()[0]
+                total_harga += harga_supir * durasi
+            except:
+                print("Input tidak valid.")
+                kembali()
+                return
+
+            cur.execute("UPDATE driver SET status = 'disewa' WHERE id_driver = %s", (id_driver,))
+
 
     cur.execute("SELECT CURRENT_DATE")
     tanggal_sekarang = cur.fetchone()[0]

@@ -308,7 +308,7 @@ def tambah_driver():
         try:
             nama = input("Nama driver: ")
             no_hp = input("No HP: ")
-            cur.execute("INSERT INTO driver (nama, no_hp, status) VALUES (%s, %s, %s)", (nama, no_hp, 'aktif'))
+            cur.execute("INSERT INTO driver (nama, no_hp, status) VALUES (%s, %s, %s)", (nama, no_hp, 'tersedia'))
             conn.commit()
             print("Driver berhasil ditambahkan")
             time.sleep(1.25)
