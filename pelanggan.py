@@ -176,13 +176,58 @@ def sewa_kendaraan(id_pelanggan):
         kembali()
         return
 
-    durasi = int(input(f"Masukkan durasi sewa ({paket}): "))
+    try:
+        durasi = int(input(f"Masukkan durasi sewa ({paket}): "))
+    except ValueError:
+        print("Durasi harus berupa angka.")
+        kembali()
+        return
 
     jaminan = input("Masukkan jenis jaminan (KTP/SIM): ").upper()
     if jaminan not in ['KTP', 'SIM']:
         print("Jaminan tidak valid! Hanya diperbolehkan KTP atau SIM.")
         kembali()
         return
+
+    print("\nPilih metode pembayaran:")
+    print("1. Cash")
+    print("2. Transfer Bank BCA")
+    print("3. Transfer Bank BRI")
+    print("4. Transfer Bank Mandiri")
+    print("5. QRIS")
+    print("6. OVO")
+    print("7. DANA")
+    print("8. GoPay")
+    print("9. Kartu Kredit / Debit")
+    print("10. COD (Bayar di Tempat)")
+
+    metode = input("Pilih (1-10): ")
+
+    if metode == '1':
+        metode_pembayaran = 'Cash'
+    elif metode == '2':
+        metode_pembayaran = 'Bank BCA'
+    elif metode == '3':
+        metode_pembayaran = 'Bank BRI'
+    elif metode == '4':
+        metode_pembayaran = 'Bank Mandiri'
+    elif metode == '5':
+        metode_pembayaran = 'QRIS'
+    elif metode == '6':
+        metode_pembayaran = 'OVO'
+    elif metode == '7':
+        metode_pembayaran = 'DANA'
+    elif metode == '8':
+        metode_pembayaran = 'GoPay'
+    elif metode == '9':
+        metode_pembayaran = 'Kartu Kredit/Debit'
+    elif metode == '10':
+        metode_pembayaran = 'COD'
+    else:
+        print("Metode pembayaran tidak valid.")
+        kembali()
+        return
+
 
     cur.execute(f"SELECT {harga_query} FROM kendaraan WHERE id_kendaraan = %s", (id_kendaraan,))
     harga = cur.fetchone()
@@ -192,6 +237,47 @@ def sewa_kendaraan(id_pelanggan):
         return
 
     total_harga = harga[0] * durasi
+
+    id_driver = None
+    id_harga_driver = None
+
+    pakai_supir = input("Apakah Anda ingin menyewa supir? (y/n): ").lower()
+    if pakai_supir == 'y':
+        cur.execute("SELECT id_driver, nama FROM driver WHERE status = 'tersedia'")
+        list_supir = cur.fetchall()
+
+        if not list_supir:
+            print("Supir tidak tersedia saat ini.")
+            kembali()
+            return
+
+        print("\nDaftar Supir:")
+        for supir in list_supir:
+            print(f"{supir[0]}. {supir[1]}")
+        try:
+            id_driver = int(input("Masukkan ID supir yang dipilih: "))
+        except:
+            print("ID Supir tidak valid.")
+            kembali()
+            return
+
+        cur.execute("SELECT id_harga_driver, nama_paket, harga FROM harga_driver")
+        list_harga_driver = cur.fetchall()
+        print("\nPaket Harga Supir:")
+        for h in list_harga_driver:
+            print(f"{h[0]}. {h[1]} - Rp{h[2]:,}".replace(",", "."))
+
+        try:
+            id_harga_driver = int(input("Pilih ID paket harga supir: "))
+            cur.execute("SELECT harga FROM harga_driver WHERE id_harga_driver = %s", (id_harga_driver,))
+            harga_supir = cur.fetchone()[0]
+            total_harga += harga_supir * durasi
+        except:
+            print("Input tidak valid.")
+            kembali()
+            return
+
+        cur.execute("UPDATE driver SET status = 'disewa' WHERE id_driver = %s", (id_driver,))
 
     cur.execute("SELECT CURRENT_DATE")
     tanggal_sekarang = cur.fetchone()[0]
@@ -206,12 +292,14 @@ def sewa_kendaraan(id_pelanggan):
     cur.execute("""
         INSERT INTO transaksi (
             id_pelanggan, id_kendaraan, paket_sewa, tanggal_transaksi,
-            tanggal_pengembalian, jaminan, durasi, total_harga
+            tanggal_pengembalian, jaminan, durasi, total_harga,
+            metode_pembayaran, id_driver, id_harga_driver
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """, (
         id_pelanggan, id_kendaraan, paket, tanggal_sekarang,
-        tanggal_kembali, jaminan, durasi, total_harga
+        tanggal_kembali, jaminan, durasi, total_harga,
+        metode_pembayaran, id_driver, id_harga_driver
     ))
 
     cur.execute("""
@@ -222,8 +310,10 @@ def sewa_kendaraan(id_pelanggan):
 
     conn.commit()
 
-    print(f"Transaksi berhasil dibuat.")
+    print(f"\nTransaksi berhasil dibuat.")
+    print(f"Total yang harus dibayar: Rp{total_harga:,}".replace(",", "."))
     kembali()
+
 
 
 def pilih_jadwal_antar_jemput(id_pelanggan):
